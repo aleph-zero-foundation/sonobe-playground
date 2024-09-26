@@ -1,0 +1,8 @@
+.idea/
+
+target/
+
+circuit/node_modules/
+circuit/package-lock.json
+circuit/*_js
+circuit/*.r1cs
