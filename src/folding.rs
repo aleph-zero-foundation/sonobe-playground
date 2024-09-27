@@ -1,13 +1,12 @@
-use ark_bn254::{constraints::GVar, Bn254, Fr, G1Projective as G1};
+use ark_bn254::{Bn254, constraints::GVar, Fr, G1Projective as G1};
 use ark_crypto_primitives::sponge::poseidon::PoseidonConfig;
 use ark_grumpkin::{constraints::GVar as GVar2, Projective as G2};
-use rand::rngs::OsRng;
 use sonobe::{
     commitment::{kzg::KZG, pedersen::Pedersen},
     folding::{hypernova::HyperNova, nova::Nova},
+    FoldingScheme,
     frontend::circom::CircomFCircuit,
     transcript::poseidon::poseidon_canonical_config,
-    FoldingScheme,
 };
 
 pub type NovaFolding =
@@ -24,8 +23,6 @@ pub type HyperNovaFolding = HyperNova<
     1,
     false,
 >;
-
-pub type VerifierParam<FS> = <FS as FoldingScheme<G1, G2, CircomFCircuit<Fr>>>::VerifierParam;
 
 pub trait FoldingSchemeExt: FoldingScheme<G1, G2, CircomFCircuit<Fr>> {
     fn prepreprocess(
@@ -55,7 +52,7 @@ impl FoldingSchemeExt for HyperNovaFolding {
 pub fn prepare_folding<FS: FoldingSchemeExt>(
     circuit: &CircomFCircuit<Fr>,
     start_ivc_state: Vec<Fr>,
-    rng: &mut OsRng,
+    rng: &mut impl rand::RngCore,
 ) -> (FS, FS::VerifierParam) {
     let preprocess_params = FS::prepreprocess(poseidon_canonical_config::<Fr>(), circuit.clone());
     let params =
@@ -66,14 +63,14 @@ pub fn prepare_folding<FS: FoldingSchemeExt>(
     (folding, params.1)
 }
 
-pub fn verify_folding(
-    folding: &NovaFolding,
-    folding_vp: VerifierParam<NovaFolding>,
+pub fn verify_folding<FS: FoldingSchemeExt>(
+    folding: &FS,
+    folding_vp: FS::VerifierParam,
     start_ivc_state: Vec<Fr>,
     num_steps: u32,
 ) {
     let (running_instance, incoming_instance, cyclefold_instance) = folding.instances();
-    NovaFolding::verify(
+    FS::verify(
         folding_vp,
         start_ivc_state,
         folding.state(),

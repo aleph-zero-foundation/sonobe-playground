@@ -4,6 +4,7 @@ use sonobe::frontend::circom::CircomFCircuit;
 
 use crate::{circuit::create_circuit, input::prepare_input, measure};
 
+#[derive(Clone)]
 pub struct ScenarioConfig {
     pub num_steps: usize,
     pub start_ivc_state: Vec<Fr>,

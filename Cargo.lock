@@ -3326,8 +3326,6 @@ version = "0.1.0"
 dependencies = [
  "ark-bn254 0.4.0",
  "ark-crypto-primitives",
- "ark-ec 0.4.1",
- "ark-ff 0.4.1",
  "ark-groth16",
  "ark-grumpkin",
  "ark-serialize 0.4.1",
