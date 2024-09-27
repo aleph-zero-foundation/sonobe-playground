@@ -1,7 +1,7 @@
 use std::env::current_dir;
+
 use ark_bn254::Fr;
-use sonobe::frontend::circom::CircomFCircuit;
-use sonobe::frontend::FCircuit;
+use sonobe::frontend::{circom::CircomFCircuit, FCircuit};
 
 const IVC_STEP_WIDTH: usize = 2;
 const STEP_INPUT_WIDTH: usize = 256;

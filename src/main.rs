@@ -1,13 +1,9 @@
 use std::time::Instant;
 
-use ark_bn254::Fr;
-use num_traits::identities::Zero;
+use scenario_config::ScenarioConfig;
 use sonobe::FoldingScheme;
-use crate::{
-    circuit::create_circuit,
-    folding::{prepare_folding, verify_folding},
-    input::prepare_input,
-};
+
+use crate::folding::{prepare_folding, verify_folding};
 
 fn measure<T, Action: FnOnce() -> T>(action_name: &str, action: Action) -> T {
     let start = Instant::now();
@@ -19,19 +15,17 @@ fn measure<T, Action: FnOnce() -> T>(action_name: &str, action: Action) -> T {
 mod circuit;
 mod folding;
 mod input;
+mod scenario_config;
 
 fn main() {
     let mut rng = rand::rngs::OsRng;
+    let config = ScenarioConfig::new();
 
-    let circuit = measure("Prepare circuit", create_circuit);
-
-    let start_ivc_state = vec![Fr::zero(); 2];
     let (mut folding, folding_vp) = measure("Prepare folding", || {
-        prepare_folding(&circuit, start_ivc_state.clone(), &mut rng)
+        prepare_folding(&config.circuit, config.start_ivc_state.clone(), &mut rng)
     });
 
-    let num_steps = 5;
-    for (i, external_inputs_at_step) in prepare_input()[..num_steps].iter().enumerate() {
+    for (i, external_inputs_at_step) in config.input().iter().enumerate() {
         measure(&format!("Nova::prove_step {i}"), || {
             folding
                 .prove_step(rng, external_inputs_at_step.clone(), None)
@@ -40,6 +34,11 @@ fn main() {
     }
 
     measure("Folding verification", || {
-        verify_folding(&folding, folding_vp, start_ivc_state, num_steps as u32)
+        verify_folding(
+            &folding,
+            folding_vp,
+            config.start_ivc_state,
+            config.num_steps as u32,
+        )
     });
 }
