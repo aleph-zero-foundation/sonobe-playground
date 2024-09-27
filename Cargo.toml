@@ -5,3 +5,15 @@ edition = "2021"
 authors = ["Piotr Mikołajczyk <piomiko41@gmail.com>"]
 
 [dependencies]
+ark-bn254 = { version = "^0.4.0", features = ["r1cs"] }
+ark-grumpkin = { version = "0.4.0", features = ["r1cs"] }
+ark-groth16 = { version = "0.4.0", features = ["parallel"] }
+ark-serialize = { version = "0.4.0" }
+rand = { version = "0.8.5" }
+sonobe = { git = "https://github.com/privacy-scaling-explorations/sonobe", rev = "f1d82418ba047cf90805f2d0505370246df24d68", package = "folding-schemes" }
+num-traits = "0.2.15"
+
+[patch.crates-io]
+ark-r1cs-std = { git = "https://github.com/winderica/r1cs-std", branch = "cherry-pick" }
+ark-bn254 = { git = "https://github.com/arnaucube/ark-curves-cherry-picked", branch = "cherry-pick" }
+ark-grumpkin = { git = "https://github.com/arnaucube/ark-curves-cherry-picked", branch = "cherry-pick" }
