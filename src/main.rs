@@ -3,8 +3,14 @@ use std::time::Instant;
 use scenario_config::ScenarioConfig;
 
 use crate::folding::{
-    prepare_folding, verify_folding, FoldingSchemeExt, HyperNovaFolding, NovaFolding,
+    FoldingSchemeExt, HyperNovaFolding, NovaFolding, prepare_folding, verify_folding,
 };
+
+mod circuit;
+
+mod folding;
+mod input;
+mod scenario_config;
 
 fn measure<T, Action: FnOnce() -> T>(action_name: &str, action: Action) -> T {
     let start = Instant::now();
@@ -13,13 +19,7 @@ fn measure<T, Action: FnOnce() -> T>(action_name: &str, action: Action) -> T {
     result
 }
 
-mod circuit;
-mod folding;
-mod input;
-mod scenario_config;
-
 fn scenario<FS: FoldingSchemeExt>(config: ScenarioConfig, rng: &mut impl rand::RngCore) {
-
     // ============== FOLDING PREPARATION ==========================================================
 
     let (mut folding, folding_vp) = measure("Prepare folding", || {
@@ -28,10 +28,15 @@ fn scenario<FS: FoldingSchemeExt>(config: ScenarioConfig, rng: &mut impl rand::R
 
     // ============== FOLDING ======================================================================
 
-    for (i, external_inputs_at_step) in config.input().iter().enumerate() {
+    let input = config.input().to_vec();
+    for (i, step_input) in FS::transform_inputs(input).enumerate() {
         measure(&format!("Prove_step {i}"), || {
             folding
-                .prove_step(&mut *rng, external_inputs_at_step.clone(), None)
+                .prove_step(
+                    &mut *rng,
+                    step_input.external_inputs,
+                    step_input.other_instances,
+                )
                 .expect("Failed to prove step")
         });
     }
@@ -54,6 +59,7 @@ fn main() {
 
     println!("========== Nova folding scheme ==========");
     scenario::<NovaFolding>(config.clone(), &mut rng);
+
     println!("========== HyperNova folding scheme ==========");
     scenario::<HyperNovaFolding>(config, &mut rng);
 }

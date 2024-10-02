@@ -11,3 +11,7 @@ prepare-circuit: clear-circuit-artifacts # Build the circuit artifacts
 .PHONY: clear-circuit-artifacts
 clear-circuit-artifacts: # Clear the circuit artifacts
 	@rm -rf circuit/grayscale_step_js circuit/grayscale_step.r1cs
+
+.PHONY: run
+run: # Run the experiment
+	@cargo run --release
