@@ -64,33 +64,36 @@ template GrayScaleHash(width){
     // Private inputs
     signal input external_inputs [2 * width];
 
-    signal row_orig [width];
-    signal row_tran [width];
+    // signal row_orig [width];
+    // signal row_tran [width];
 
-    for (var i = 0; i < width; i++) {
-        row_orig[i] <== external_inputs[i];
-        row_tran[i] <== external_inputs[i + width];
-    }
+    // for (var i = 0; i < width; i++) {
+    //     row_orig[i] <== external_inputs[i];
+    //     row_tran[i] <== external_inputs[i + width];
+    // }
 
-    component orig_row_hasher = RowHasher(width);
-    component gray_row_hasher = RowHasher(width);
-    component orig_hasher = Hasher(2);
-    component gray_hasher = Hasher(2);
+    // component orig_row_hasher = RowHasher(width);
+    // component gray_row_hasher = RowHasher(width);
+    // component orig_hasher = Hasher(2);
+    // component gray_hasher = Hasher(2);
 
-    orig_row_hasher.img <== row_orig;
-    orig_hasher.values[0] <== ivc_input[0]; // prev_orig_hash
-    orig_hasher.values[1] <== orig_row_hasher.hash;
-    ivc_output[0] <== orig_hasher.hash; // next_orig_hash
+    // orig_row_hasher.img <== row_orig;
+    // orig_hasher.values[0] <== ivc_input[0]; // prev_orig_hash
+    // orig_hasher.values[1] <== orig_row_hasher.hash;
+    // ivc_output[0] <== orig_hasher.hash; // next_orig_hash
 
-    gray_row_hasher.img <== row_tran;
-    gray_hasher.values[0] <== ivc_input[1]; // prev_gray_hash
-    gray_hasher.values[1] <== gray_row_hasher.hash;
-    ivc_output[1] <== gray_hasher.hash; // next_grey_hash
+    // gray_row_hasher.img <== row_tran;
+    // gray_hasher.values[0] <== ivc_input[1]; // prev_gray_hash
+    // gray_hasher.values[1] <== gray_row_hasher.hash;
+    // ivc_output[1] <== gray_hasher.hash; // next_grey_hash
+
+    ivc_output[0] <== ivc_input[0];
+    ivc_output[1] <== ivc_input[1];
 
     // grayscale code here ...
-    component checker = GrayScale(width);
-    checker.original <== row_orig;
-    checker.transformed <== row_tran;
+    // component checker = GrayScale(width);
+    // checker.original <== row_orig;
+    // checker.transformed <== row_tran;
 
 }
 
