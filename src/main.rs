@@ -3,7 +3,7 @@ use std::time::Instant;
 use scenario_config::ScenarioConfig;
 
 use crate::folding::{
-    FoldingSchemeExt, HyperNovaFolding, NovaFolding, prepare_folding, verify_folding,
+    prepare_folding, verify_folding, FoldingSchemeExt, HyperNovaFolding, NovaFolding,
 };
 
 mod circuit;
@@ -22,14 +22,17 @@ fn measure<T, Action: FnOnce() -> T>(action_name: &str, action: Action) -> T {
 fn scenario<FS: FoldingSchemeExt>(config: ScenarioConfig, rng: &mut impl rand::RngCore) {
     // ============== FOLDING PREPARATION ==========================================================
 
+    let start_state = config.start_ivc_state.clone();
     let (mut folding, folding_vp) = measure("Prepare folding", || {
-        prepare_folding::<FS>(&config.circuit, config.start_ivc_state.clone(), rng)
+        prepare_folding::<FS>(&config.circuit, start_state.clone(), rng)
     });
 
     // ============== FOLDING ======================================================================
 
-    let input = config.input().to_vec();
-    for (i, step_input) in FS::transform_inputs(input).enumerate() {
+    let input = measure("Transform input", || {
+        folding.transform_inputs(config.input().to_vec(), start_state.clone(), &mut *rng)
+    });
+    for (i, step_input) in input.into_iter().enumerate() {
         measure(&format!("Prove_step {i}"), || {
             folding
                 .prove_step(
@@ -57,9 +60,12 @@ fn main() {
     let mut rng = rand::rngs::OsRng;
     let config = ScenarioConfig::new();
 
-    println!("========== Nova folding scheme ==========");
+    println!("========== Nova folding scheme ====================");
     scenario::<NovaFolding>(config.clone(), &mut rng);
 
-    println!("========== HyperNova folding scheme ==========");
-    scenario::<HyperNovaFolding>(config, &mut rng);
+    println!("========== HyperNova<1,1> folding scheme ==========");
+    scenario::<HyperNovaFolding<1, 1>>(config.clone(), &mut rng);
+
+    println!("========== HyperNova<2,2> folding scheme ==========");
+    scenario::<HyperNovaFolding<2, 2>>(config, &mut rng);
 }

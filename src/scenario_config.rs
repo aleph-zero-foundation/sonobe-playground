@@ -15,7 +15,7 @@ pub struct ScenarioConfig {
 impl ScenarioConfig {
     pub fn new() -> Self {
         Self {
-            num_steps: 5,
+            num_steps: 6,
             start_ivc_state: vec![Fr::zero(); 2],
             circuit: measure("Prepare circuit", create_circuit),
             input: measure("Prepare input", prepare_input),

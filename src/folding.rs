@@ -1,17 +1,18 @@
 use ark_bn254::{constraints::GVar, Bn254, Fr, G1Projective as G1};
 use ark_crypto_primitives::sponge::poseidon::PoseidonConfig;
 use ark_grumpkin::{constraints::GVar as GVar2, Projective as G2};
+use itertools::Itertools;
 use sonobe::{
     commitment::{kzg::KZG, pedersen::Pedersen},
     folding::{hypernova::HyperNova, nova::Nova},
     frontend::circom::CircomFCircuit,
     transcript::poseidon::poseidon_canonical_config,
-    FoldingScheme,
+    FoldingScheme, MultiFolding,
 };
 
 pub type NovaFolding =
     Nova<G1, GVar, G2, GVar2, CircomFCircuit<Fr>, KZG<'static, Bn254>, Pedersen<G2>, false>;
-pub type HyperNovaFolding = HyperNova<
+pub type HyperNovaFolding<const N: usize, const M: usize> = HyperNova<
     G1,
     GVar,
     G2,
@@ -19,8 +20,8 @@ pub type HyperNovaFolding = HyperNova<
     CircomFCircuit<Fr>,
     KZG<'static, Bn254>,
     Pedersen<G2>,
-    1,
-    1,
+    N,
+    M,
     false,
 >;
 
@@ -36,8 +37,11 @@ pub trait FoldingSchemeExt: FoldingScheme<G1, G2, CircomFCircuit<Fr>> {
     ) -> Self::PreprocessorParam;
 
     fn transform_inputs(
+        &self,
         full_input: Vec<Vec<Fr>>,
-    ) -> impl Iterator<Item = StepInput<Self::MultiCommittedInstanceWithWitness>>;
+        initial_state: Vec<Fr>,
+        rng: &mut impl rand::RngCore,
+    ) -> Vec<StepInput<Self::MultiCommittedInstanceWithWitness>>;
 }
 
 impl FoldingSchemeExt for NovaFolding {
@@ -49,16 +53,22 @@ impl FoldingSchemeExt for NovaFolding {
     }
 
     fn transform_inputs(
+        &self,
         full_input: Vec<Vec<Fr>>,
-    ) -> impl Iterator<Item = StepInput<Self::MultiCommittedInstanceWithWitness>> {
-        full_input.into_iter().map(|input| StepInput {
-            external_inputs: input,
-            other_instances: None,
-        })
+        _initial_state: Vec<Fr>,
+        _rng: &mut impl rand::RngCore,
+    ) -> Vec<StepInput<Self::MultiCommittedInstanceWithWitness>> {
+        full_input
+            .into_iter()
+            .map(|input| StepInput {
+                external_inputs: input,
+                other_instances: None,
+            })
+            .collect()
     }
 }
 
-impl FoldingSchemeExt for HyperNovaFolding {
+impl<const N: usize, const M: usize> FoldingSchemeExt for HyperNovaFolding<N, M> {
     fn prepreprocess(
         poseidon_config: PoseidonConfig<Fr>,
         circuit: CircomFCircuit<Fr>,
@@ -67,12 +77,52 @@ impl FoldingSchemeExt for HyperNovaFolding {
     }
 
     fn transform_inputs(
+        &self,
         full_input: Vec<Vec<Fr>>,
-    ) -> impl Iterator<Item = StepInput<Self::MultiCommittedInstanceWithWitness>> {
-        full_input.into_iter().map(|input| StepInput {
-            external_inputs: input,
-            other_instances: Some((vec![], vec![])),
-        })
+        initial_state: Vec<Fr>,
+        rng: &mut impl rand::RngCore,
+    ) -> Vec<StepInput<Self::MultiCommittedInstanceWithWitness>> {
+        full_input
+            .into_iter()
+            .chunks(M + N - 1)
+            .into_iter()
+            .map(|chunk| {
+                let chunk = chunk.collect::<Vec<_>>();
+                let (running, rest) = chunk.split_at(M - 1);
+                let (incoming, [single]) = rest.split_at(N - 1) else {
+                    panic!("Invalid input chunk size");
+                };
+
+                let lcccs = running
+                    .iter()
+                    .map(|instance| {
+                        self.new_running_instance(
+                            &mut *rng,
+                            initial_state.clone(),
+                            instance.clone(),
+                        )
+                        .expect("Failed to create running instance")
+                    })
+                    .collect();
+
+                let cccs = incoming
+                    .iter()
+                    .map(|instance| {
+                        self.new_incoming_instance(
+                            &mut *rng,
+                            initial_state.clone(),
+                            instance.clone(),
+                        )
+                        .expect("Failed to create incoming instance")
+                    })
+                    .collect();
+
+                StepInput {
+                    external_inputs: single.clone(),
+                    other_instances: Some((lcccs, cccs)),
+                }
+            })
+            .collect()
     }
 }
 

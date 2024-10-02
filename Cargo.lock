@@ -3330,6 +3330,7 @@ dependencies = [
  "ark-grumpkin",
  "ark-serialize 0.4.1",
  "folding-schemes",
+ "itertools 0.13.0",
  "num-traits",
  "rand 0.8.5",
 ]

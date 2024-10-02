@@ -10,6 +10,7 @@ ark-crypto-primitives = { version = "0.4.0" }
 ark-grumpkin = { version = "0.4.0", features = ["r1cs"] }
 ark-groth16 = { version = "0.4.0", features = ["parallel"] }
 ark-serialize = { version = "0.4.0" }
+itertools = { version = "0.13.0" }
 rand = { version = "0.8.5" }
 sonobe = { git = "https://github.com/privacy-scaling-explorations/sonobe", rev = "f1d82418ba047cf90805f2d0505370246df24d68", package = "folding-schemes" }
 num-traits = { version = "0.2.15" }
