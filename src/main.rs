@@ -51,7 +51,7 @@ fn scenario<FS: FoldingSchemeExt>(config: ScenarioConfig, rng: &mut impl rand::R
             &folding,
             folding_vp,
             config.start_ivc_state,
-            config.num_steps as u32,
+            config.num_inputs,
         )
     });
 }

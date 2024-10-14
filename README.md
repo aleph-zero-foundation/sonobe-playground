@@ -4,7 +4,7 @@
 
 - ✅ Nova folding
 - ✅ HyperNova folding without multifolding (μ = ν = 0)
-- ❌ HyperNova multifolding (μ = ν = 1)
+- ✅ HyperNova multifolding (μ = ν = 1)
 
 ## Reproduce
 
@@ -18,35 +18,32 @@ make run
 _12th Gen Intel® Core™ i7-12800H × 20, 32Gb RAM_
 
 ```
-Prepare circuit: 62.569µs
-Prepare input: 12.271114ms
+Prepare circuit: 386.733µs
+Prepare input: 9.041434ms
 ========== Nova folding scheme ====================
-Prepare folding: 1.038241793s
-Transform input: 293.007µs
-Prove_step 0: 186.297898ms
-Prove_step 1: 216.137291ms
-Prove_step 2: 244.387123ms
-Prove_step 3: 253.724876ms
-Prove_step 4: 249.476304ms
-Prove_step 5: 254.825831ms
-Folding verification: 15.513019ms
+Prepare folding: 1.042210402s
+Transform input: 352.973µs
+Prove_step 0: 188.311556ms
+Prove_step 1: 201.33003ms
+Prove_step 2: 256.05521ms
+Prove_step 3: 282.359763ms
+Prove_step 4: 252.831315ms
+Prove_step 5: 255.913864ms
+Folding verification: 16.793244ms
 ========== HyperNova<1,1> folding scheme ==========
-Prepare folding: 2.125681209s
-Transform input: 221.36µs
-Prove_step 0: 765.455805ms
-Prove_step 1: 848.616158ms
-Prove_step 2: 833.972256ms
-Prove_step 3: 864.703408ms
-Prove_step 4: 844.404617ms
-Prove_step 5: 865.9787ms
-Folding verification: 31.417487ms
+Prepare folding: 2.065175679s
+Transform input: 212.792µs
+Prove_step 0: 796.910579ms
+Prove_step 1: 853.848474ms
+Prove_step 2: 930.1784ms
+Prove_step 3: 872.190521ms
+Prove_step 4: 910.903061ms
+Prove_step 5: 939.589533ms
+Folding verification: 29.238423ms
 ========== HyperNova<2,2> folding scheme ==========
-Prepare folding: 2.843266713s
-Transform input: 3.922030432s
-Prove_step 0: 995.358483ms
-Prove_step 1: 1.209482586s
-thread 'main' panicked at src/folding.rs:159:6:
-Failed to verify folded proof: IVCVerificationFail
-note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
-make: *** [Makefile:17: run] Error 101
+Prepare folding: 2.995732852s
+Transform input: 3.9520013s
+Prove_step 0: 966.629701ms
+Prove_step 1: 1.22535041s
+Folding verification: 33.430805ms
 ```

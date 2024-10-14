@@ -31,6 +31,8 @@ pub struct StepInput<OtherInstances> {
 }
 
 pub trait FoldingSchemeExt: FoldingScheme<G1, G2, CircomFCircuit<Fr>> {
+    fn num_steps(num_inputs: usize) -> usize;
+
     fn prepreprocess(
         poseidon_config: PoseidonConfig<Fr>,
         circuit: CircomFCircuit<Fr>,
@@ -45,6 +47,11 @@ pub trait FoldingSchemeExt: FoldingScheme<G1, G2, CircomFCircuit<Fr>> {
 }
 
 impl FoldingSchemeExt for NovaFolding {
+    fn num_steps(num_inputs: usize) -> usize {
+        num_inputs // no multifolding
+    }
+
+
     fn prepreprocess(
         poseidon_config: PoseidonConfig<Fr>,
         circuit: CircomFCircuit<Fr>,
@@ -69,6 +76,12 @@ impl FoldingSchemeExt for NovaFolding {
 }
 
 impl<const N: usize, const M: usize> FoldingSchemeExt for HyperNovaFolding<N, M> {
+    fn num_steps(num_inputs: usize) -> usize {
+        let per_step = M + N - 1;
+        assert_eq!(num_inputs % per_step, 0);
+        num_inputs / per_step
+    }
+
     fn prepreprocess(
         poseidon_config: PoseidonConfig<Fr>,
         circuit: CircomFCircuit<Fr>,
@@ -144,14 +157,14 @@ pub fn verify_folding<FS: FoldingSchemeExt>(
     folding: &FS,
     folding_vp: FS::VerifierParam,
     start_ivc_state: Vec<Fr>,
-    num_steps: u32,
+    num_inputs: usize,
 ) {
     let (running_instance, incoming_instance, cyclefold_instance) = folding.instances();
     FS::verify(
         folding_vp,
         start_ivc_state,
         folding.state(),
-        Fr::from(num_steps),
+        Fr::from(FS::num_steps(num_inputs) as u32),
         running_instance,
         incoming_instance,
         cyclefold_instance,
