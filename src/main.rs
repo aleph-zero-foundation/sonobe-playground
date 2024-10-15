@@ -63,4 +63,6 @@ fn main() {
     scenario::<NovaFolding>(config.clone(), &mut rng, "Nova");
     scenario::<HyperNovaFolding<1, 1>>(config.clone(), &mut rng, "HyperNova<1,1>");
     scenario::<HyperNovaFolding<2, 2>>(config.clone(), &mut rng, "HyperNova<2,2>");
+    scenario::<HyperNovaFolding<6, 1>>(config.clone(), &mut rng, "HyperNova<6,1>");
+    scenario::<HyperNovaFolding<1, 6>>(config.clone(), &mut rng, "HyperNova<1,6>");
 }

@@ -12,7 +12,7 @@ use sonobe::{
 
 pub type NovaFolding =
     Nova<G1, GVar, G2, GVar2, CircomFCircuit<Fr>, KZG<'static, Bn254>, Pedersen<G2>, false>;
-pub type HyperNovaFolding<const N: usize, const M: usize> = HyperNova<
+pub type HyperNovaFolding<const M: usize, const N: usize> = HyperNova<
     G1,
     GVar,
     G2,
@@ -20,8 +20,8 @@ pub type HyperNovaFolding<const N: usize, const M: usize> = HyperNova<
     CircomFCircuit<Fr>,
     KZG<'static, Bn254>,
     Pedersen<G2>,
-    N,
     M,
+    N,
     false,
 >;
 
@@ -75,7 +75,7 @@ impl FoldingSchemeExt for NovaFolding {
     }
 }
 
-impl<const N: usize, const M: usize> FoldingSchemeExt for HyperNovaFolding<N, M> {
+impl<const M: usize, const N: usize> FoldingSchemeExt for HyperNovaFolding<M, N> {
     fn num_steps(num_inputs: usize) -> usize {
         let per_step = M + N - 1;
         assert_eq!(num_inputs % per_step, 0);
