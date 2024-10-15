@@ -1,9 +1,9 @@
 use ark_bn254::Fr;
 use num_traits::Zero;
 use sonobe::frontend::circom::CircomFCircuit;
+use tracing::info_span;
 
 use crate::{circuit::create_circuit, input::prepare_input};
-use crate::logging::measure;
 
 #[derive(Clone)]
 pub struct ScenarioConfig {
@@ -18,8 +18,8 @@ impl ScenarioConfig {
         Self {
             num_inputs: 6,
             start_ivc_state: vec![Fr::zero(); 2],
-            circuit: measure("Prepare circuit", create_circuit),
-            input: measure("Prepare input", prepare_input),
+            circuit: info_span!("Prepare circuit").in_scope(create_circuit),
+            input: info_span!("Prepare input").in_scope(prepare_input),
         }
     }
 

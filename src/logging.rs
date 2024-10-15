@@ -1,14 +1,7 @@
-use std::{io, time::Instant};
+use std::io;
 
-use tracing::{info, level_filters::LevelFilter};
-use tracing_subscriber::{EnvFilter, fmt::format::FmtSpan};
-
-pub fn measure<T, Action: FnOnce() -> T>(action_name: &str, action: Action) -> T {
-    let start = Instant::now();
-    let result = action();
-    info!("{action_name}: {:?}", start.elapsed());
-    result
-}
+use tracing::level_filters::LevelFilter;
+use tracing_subscriber::{fmt::format::FmtSpan, EnvFilter};
 
 fn get_filter() -> EnvFilter {
     EnvFilter::builder()
