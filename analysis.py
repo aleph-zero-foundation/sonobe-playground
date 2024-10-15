@@ -1,4 +1,8 @@
 import json
+import re
+
+import matplotlib.pyplot as plt
+import numpy as np
 
 
 # Function to convert time units to seconds
@@ -18,6 +22,7 @@ def report(operation, time):
 
 scenarios = {}
 free_logs = []
+hypernova = [[None] * 7 for _ in range(7)]
 
 
 def process_logline(log):
@@ -36,6 +41,10 @@ def process_logline(log):
         folding_scheme = span.get("folding_scheme")
         if folding_scheme is not None:
             free_logs.append(report(f"{folding_scheme} total time", time_seconds))
+
+            hypernova_params = re.fullmatch(r"HyperNova<(\d),(\d)>", folding_scheme)
+            if hypernova_params:
+                hypernova[int(hypernova_params.groups()[0])][int(hypernova_params.groups()[1])] = time_seconds
         else:
             free_logs.append(report(span["name"], time_seconds))
         return
@@ -90,5 +99,39 @@ def print_results():
         print(report("      Max", max(proving_steps)))
 
 
+def draw_hn_plot():
+    data_np = np.array(hypernova, dtype=np.float64)
+    data_np = np.where(np.isnan(data_np), 0, data_np)  # Replace None with 0 for better visualization
+
+    cmap = plt.cm.viridis
+    cmap.set_under('white')  # Set background color for None
+
+    fig, ax = plt.subplots()
+    cax = ax.matshow(data_np, cmap=cmap, vmin=0.01)
+
+    fig.colorbar(cax)
+
+    for i in range(len(hypernova)):
+        for j in range(len(hypernova[i])):
+            if hypernova[i][j] is not None:
+                ax.text(j, i, f'{hypernova[i][j]:.2f}', va='center', ha='center', color='black')
+
+    # Set axis labels and title
+    ax.set_xlabel('ν (number of incoming CCCS instances)')
+    ax.set_ylabel('μ (number of running LCCCS instances)')
+
+    ax.set_xticks(np.arange(len(hypernova[0])))
+
+    ax.set_yticks(np.arange(len(hypernova)))
+    ax.set_xticklabels([f'{i}' for i in range(len(hypernova[0]))])
+    ax.set_yticklabels([f'{i}' for i in range(len(hypernova))])
+
+    plt.title("HyperNova multifold times")
+
+    # Show the plot
+    plt.show()
+
+
 process_logs('out.log')
 print_results()
+draw_hn_plot()
