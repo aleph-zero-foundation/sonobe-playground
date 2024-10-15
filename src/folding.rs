@@ -8,6 +8,7 @@ use sonobe::{
     transcript::poseidon::poseidon_canonical_config,
     Error, FoldingScheme, MultiFolding,
 };
+use tracing::info_span;
 
 pub type NovaFolding =
     Nova<G1, GVar, G2, GVar2, CircomFCircuit<Fr>, KZG<'static, Bn254>, Pedersen<G2>, false>;
@@ -55,8 +56,12 @@ pub trait FoldingSchemeExt: FoldingScheme<G1, G2, CircomFCircuit<Fr>> {
         initial_state: Vec<Fr>,
         rng: &mut impl rand::RngCore,
     ) -> Result<(), Error> {
-        let step_input = self.transform_multi_input(multi_input, initial_state, rng);
-        self.prove_step(rng, step_input.external_inputs, step_input.other_instances)
+        let step_input = info_span!("Input prep")
+            .in_scope(|| self.transform_multi_input(multi_input, initial_state, rng));
+
+        info_span!("Proving").in_scope(|| {
+            self.prove_step(rng, step_input.external_inputs, step_input.other_instances)
+        })
     }
 }
 

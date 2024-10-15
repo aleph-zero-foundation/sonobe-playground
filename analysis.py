@@ -46,12 +46,15 @@ def process_logline(log):
             "Prepare folding": 0,
             "Transform input": 0,
             "Folding verification": 0,
-            "Folding steps": []
+            "Proving": [],
+            "Input prep": [],
         }
 
     span_name = span.get("name")
-    if span_name == "Folding step":
-        scenarios[scenario_name]["Folding steps"].append(time_seconds)
+    if span_name == "Proving":
+        scenarios[scenario_name]["Proving"].append(time_seconds)
+    elif span_name == "Input prep":
+        scenarios[scenario_name]["Input prep"].append(time_seconds)
     else:
         scenarios[scenario_name][span_name] = time_seconds
 
@@ -74,11 +77,15 @@ def print_results():
         print(report("  Transform input", data["Transform input"]))
         print(report("  Folding verification", data["Folding verification"]))
 
-        folding_steps = data["Folding steps"]
         print(f"  Folding Steps:")
-        print(report("    Average", sum(folding_steps) / len(folding_steps)))
-        print(report("    Min", min(folding_steps)))
-        print(report("    Max", max(folding_steps)))
+        input_trans = data["Input prep"]
+        print(report("    Input prep: Average", sum(input_trans) / len(input_trans)))
+        print(report("    Input prep: Min", min(input_trans)))
+        print(report("    Input prep: Max", max(input_trans)))
+        proving_steps = data["Proving"]
+        print(report("    Proving:              Average", sum(proving_steps) / len(proving_steps)))
+        print(report("    Proving:              Min", min(proving_steps)))
+        print(report("    Proving:              Max", max(proving_steps)))
 
 
 process_logs('out.log')

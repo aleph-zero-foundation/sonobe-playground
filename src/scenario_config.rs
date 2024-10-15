@@ -16,7 +16,7 @@ pub struct ScenarioConfig {
 impl ScenarioConfig {
     pub fn new() -> Self {
         Self {
-            num_inputs: 30,
+            num_inputs: 6,
             start_ivc_state: vec![Fr::zero(); 2],
             circuit: info_span!("Prepare circuit").in_scope(create_circuit),
             input: info_span!("Prepare input").in_scope(prepare_input),
