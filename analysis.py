@@ -79,13 +79,15 @@ def print_results():
 
         print(f"  Folding Steps:")
         input_trans = data["Input prep"]
-        print(report("    Input prep: Average", sum(input_trans) / len(input_trans)))
-        print(report("    Input prep: Min", min(input_trans)))
-        print(report("    Input prep: Max", max(input_trans)))
+        print("    Input preparation")
+        print(report("      Avg", sum(input_trans) / len(input_trans)))
+        print(report("      Min", min(input_trans)))
+        print(report("      Max", max(input_trans)))
         proving_steps = data["Proving"]
-        print(report("    Proving:              Average", sum(proving_steps) / len(proving_steps)))
-        print(report("    Proving:              Min", min(proving_steps)))
-        print(report("    Proving:              Max", max(proving_steps)))
+        print("    Proving")
+        print(report("      Avg", sum(proving_steps) / len(proving_steps)))
+        print(report("      Min", min(proving_steps)))
+        print(report("      Max", max(proving_steps)))
 
 
 process_logs('out.log')
