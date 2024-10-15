@@ -7,7 +7,9 @@ import numpy as np
 
 # Function to convert time units to seconds
 def convert_to_seconds(time_str):
-    if time_str.endswith('µs'):
+    if time_str.endswith('ns'):
+        return float(time_str[:-2]) * 1e-9
+    elif time_str.endswith('µs'):
         return float(time_str[:-2]) * 1e-6
     elif time_str.endswith('ms'):
         return float(time_str[:-2]) * 1e-3
@@ -100,6 +102,9 @@ def print_results():
 
 
 def draw_hn_plot():
+    global hypernova
+    hypernova = np.array(hypernova)[1:,1:]
+
     data_np = np.array(hypernova, dtype=np.float64)
     data_np = np.where(np.isnan(data_np), 0, data_np)  # Replace None with 0 for better visualization
 
