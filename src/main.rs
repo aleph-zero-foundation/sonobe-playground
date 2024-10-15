@@ -1,12 +1,10 @@
-use std::time::Instant;
-
 use scenario_config::ScenarioConfig;
-use tracing::info;
 
 use crate::{
     folding::{prepare_folding, verify_folding, FoldingSchemeExt, HyperNovaFolding, NovaFolding},
     logging::init_logging,
 };
+use crate::logging::measure;
 
 mod circuit;
 mod logging;
@@ -15,14 +13,12 @@ mod folding;
 mod input;
 mod scenario_config;
 
-fn measure<T, Action: FnOnce() -> T>(action_name: &str, action: Action) -> T {
-    let start = Instant::now();
-    let result = action();
-    info!("{action_name}: {:?}", start.elapsed());
-    result
-}
-
-fn scenario<FS: FoldingSchemeExt>(config: ScenarioConfig, rng: &mut impl rand::RngCore) {
+#[tracing::instrument(skip(config, rng))]
+fn scenario<FS: FoldingSchemeExt>(
+    config: ScenarioConfig,
+    rng: &mut impl rand::RngCore,
+    folding_scheme: &str,
+) {
     // ============== FOLDING PREPARATION ==========================================================
 
     let start_state = config.start_ivc_state.clone();
@@ -65,12 +61,7 @@ fn main() {
     let mut rng = rand::rngs::OsRng;
     let config = ScenarioConfig::new();
 
-    println!("========== Nova folding scheme ====================");
-    scenario::<NovaFolding>(config.clone(), &mut rng);
-
-    println!("========== HyperNova<1,1> folding scheme ==========");
-    scenario::<HyperNovaFolding<1, 1>>(config.clone(), &mut rng);
-
-    println!("========== HyperNova<2,2> folding scheme ==========");
-    scenario::<HyperNovaFolding<2, 2>>(config, &mut rng);
+    scenario::<NovaFolding>(config.clone(), &mut rng, "Nova");
+    scenario::<HyperNovaFolding<1, 1>>(config.clone(), &mut rng, "HyperNova<1,1>");
+    scenario::<HyperNovaFolding<2, 2>>(config.clone(), &mut rng, "HyperNova<2,2>");
 }

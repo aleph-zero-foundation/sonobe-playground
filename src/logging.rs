@@ -1,7 +1,14 @@
-use std::io;
+use std::{io, time::Instant};
 
-use tracing::level_filters::LevelFilter;
+use tracing::{info, level_filters::LevelFilter};
 use tracing_subscriber::{EnvFilter, fmt::format::FmtSpan};
+
+pub fn measure<T, Action: FnOnce() -> T>(action_name: &str, action: Action) -> T {
+    let start = Instant::now();
+    let result = action();
+    info!("{action_name}: {:?}", start.elapsed());
+    result
+}
 
 fn get_filter() -> EnvFilter {
     EnvFilter::builder()
@@ -14,9 +21,8 @@ pub fn init_logging() {
     tracing_subscriber::fmt()
         .with_writer(io::stdout)
         .with_target(false)
-        .without_time()
         .with_env_filter(get_filter())
-        .with_span_events(FmtSpan::ENTER | FmtSpan::CLOSE)
+        .with_span_events(FmtSpan::CLOSE)
         .with_level(false)
         .json()
         .try_init()

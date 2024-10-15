@@ -2,7 +2,8 @@ use ark_bn254::Fr;
 use num_traits::Zero;
 use sonobe::frontend::circom::CircomFCircuit;
 
-use crate::{circuit::create_circuit, input::prepare_input, measure};
+use crate::{circuit::create_circuit, input::prepare_input};
+use crate::logging::measure;
 
 #[derive(Clone)]
 pub struct ScenarioConfig {
