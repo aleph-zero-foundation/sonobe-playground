@@ -3,7 +3,7 @@ use tracing::info_span;
 
 use crate::{
     folding::{prepare_folding, verify_folding, FoldingSchemeExt, HyperNovaFolding, NovaFolding},
-    logging::{init_logging},
+    logging::init_logging,
 };
 
 mod circuit;
@@ -25,19 +25,12 @@ fn scenario<FS: FoldingSchemeExt>(
     let (mut folding, folding_vp) = info_span!("Prepare folding")
         .in_scope(|| prepare_folding::<FS>(&config.circuit, start_state.clone(), rng));
 
-    let input = info_span!("Transform input")
-        .in_scope(|| folding.transform_inputs(config.input().to_vec(), start_state, &mut *rng));
-
     // ============== FOLDING ======================================================================
 
-    for (i, step_input) in input.into_iter().enumerate() {
+    for (i, multistep_input) in config.input().chunks(FS::MULTISTEP_SIZE).enumerate() {
         info_span!("Folding step", step = i).in_scope(|| {
             folding
-                .prove_step(
-                    &mut *rng,
-                    step_input.external_inputs,
-                    step_input.other_instances,
-                )
+                .prove_multistep(multistep_input.to_vec(), start_state.clone(), &mut *rng)
                 .expect("Failed to prove step")
         });
     }

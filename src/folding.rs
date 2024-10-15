@@ -1,13 +1,12 @@
 use ark_bn254::{constraints::GVar, Bn254, Fr, G1Projective as G1};
 use ark_crypto_primitives::sponge::poseidon::PoseidonConfig;
 use ark_grumpkin::{constraints::GVar as GVar2, Projective as G2};
-use itertools::Itertools;
 use sonobe::{
     commitment::{kzg::KZG, pedersen::Pedersen},
     folding::{hypernova::HyperNova, nova::Nova},
     frontend::circom::CircomFCircuit,
     transcript::poseidon::poseidon_canonical_config,
-    FoldingScheme, MultiFolding,
+    Error, FoldingScheme, MultiFolding,
 };
 
 pub type NovaFolding =
@@ -31,26 +30,38 @@ pub struct StepInput<OtherInstances> {
 }
 
 pub trait FoldingSchemeExt: FoldingScheme<G1, G2, CircomFCircuit<Fr>> {
-    fn num_steps(num_inputs: usize) -> usize;
+    const MULTISTEP_SIZE: usize;
+
+    fn num_steps(num_inputs: usize) -> usize {
+        assert_eq!(num_inputs % Self::MULTISTEP_SIZE, 0);
+        num_inputs / Self::MULTISTEP_SIZE
+    }
 
     fn prepreprocess(
         poseidon_config: PoseidonConfig<Fr>,
         circuit: CircomFCircuit<Fr>,
     ) -> Self::PreprocessorParam;
 
-    fn transform_inputs(
+    fn transform_multi_input(
         &self,
-        full_input: Vec<Vec<Fr>>,
+        multi_input: Vec<Vec<Fr>>,
         initial_state: Vec<Fr>,
         rng: &mut impl rand::RngCore,
-    ) -> Vec<StepInput<Self::MultiCommittedInstanceWithWitness>>;
+    ) -> StepInput<Self::MultiCommittedInstanceWithWitness>;
+
+    fn prove_multistep(
+        &mut self,
+        multi_input: Vec<Vec<Fr>>,
+        initial_state: Vec<Fr>,
+        rng: &mut impl rand::RngCore,
+    ) -> Result<(), Error> {
+        let step_input = self.transform_multi_input(multi_input, initial_state, rng);
+        self.prove_step(rng, step_input.external_inputs, step_input.other_instances)
+    }
 }
 
 impl FoldingSchemeExt for NovaFolding {
-    fn num_steps(num_inputs: usize) -> usize {
-        num_inputs // no multifolding
-    }
-
+    const MULTISTEP_SIZE: usize = 1;
 
     fn prepreprocess(
         poseidon_config: PoseidonConfig<Fr>,
@@ -59,28 +70,22 @@ impl FoldingSchemeExt for NovaFolding {
         Self::PreprocessorParam::new(poseidon_config, circuit)
     }
 
-    fn transform_inputs(
+    fn transform_multi_input(
         &self,
-        full_input: Vec<Vec<Fr>>,
+        input: Vec<Vec<Fr>>,
         _initial_state: Vec<Fr>,
         _rng: &mut impl rand::RngCore,
-    ) -> Vec<StepInput<Self::MultiCommittedInstanceWithWitness>> {
-        full_input
-            .into_iter()
-            .map(|input| StepInput {
-                external_inputs: input,
-                other_instances: None,
-            })
-            .collect()
+    ) -> StepInput<Self::MultiCommittedInstanceWithWitness> {
+        assert_eq!(input.len(), 1);
+        StepInput {
+            external_inputs: input[0].clone(),
+            other_instances: None,
+        }
     }
 }
 
 impl<const M: usize, const N: usize> FoldingSchemeExt for HyperNovaFolding<M, N> {
-    fn num_steps(num_inputs: usize) -> usize {
-        let per_step = M + N - 1;
-        assert_eq!(num_inputs % per_step, 0);
-        num_inputs / per_step
-    }
+    const MULTISTEP_SIZE: usize = M + N - 1;
 
     fn prepreprocess(
         poseidon_config: PoseidonConfig<Fr>,
@@ -89,53 +94,39 @@ impl<const M: usize, const N: usize> FoldingSchemeExt for HyperNovaFolding<M, N>
         Self::PreprocessorParam::new(poseidon_config, circuit)
     }
 
-    fn transform_inputs(
+    fn transform_multi_input(
         &self,
-        full_input: Vec<Vec<Fr>>,
+        multi_input: Vec<Vec<Fr>>,
         initial_state: Vec<Fr>,
         rng: &mut impl rand::RngCore,
-    ) -> Vec<StepInput<Self::MultiCommittedInstanceWithWitness>> {
-        full_input
-            .into_iter()
-            .chunks(M + N - 1)
-            .into_iter()
-            .map(|chunk| {
-                let chunk = chunk.collect::<Vec<_>>();
-                let (running, rest) = chunk.split_at(M - 1);
-                let (incoming, [single]) = rest.split_at(N - 1) else {
-                    panic!("Invalid input chunk size");
-                };
+    ) -> StepInput<Self::MultiCommittedInstanceWithWitness> {
+        let (running, rest) = multi_input.split_at(M - 1);
+        let (incoming, [single]) = rest.split_at(N - 1) else {
+            panic!("Invalid input chunk size");
+        };
 
-                let lcccs = running
-                    .iter()
-                    .map(|instance| {
-                        self.new_running_instance(
-                            &mut *rng,
-                            initial_state.clone(),
-                            instance.clone(),
-                        )
-                        .expect("Failed to create running instance")
-                    })
-                    .collect();
+        let new_running = |instance| {
+            self.new_running_instance(&mut *rng, initial_state.clone(), instance)
+                .expect("Failed to create running instance")
+        };
 
-                let cccs = incoming
-                    .iter()
-                    .map(|instance| {
-                        self.new_incoming_instance(
-                            &mut *rng,
-                            initial_state.clone(),
-                            instance.clone(),
-                        )
-                        .expect("Failed to create incoming instance")
-                    })
-                    .collect();
+        let new_instances =
+            |instances: Vec<Vec<Fr>>, maker| instances.into_iter().map(maker).collect();
 
-                StepInput {
-                    external_inputs: single.clone(),
-                    other_instances: Some((lcccs, cccs)),
-                }
+        let lcccs = new_instances(running.to_vec(), new_running);
+
+        let cccs = incoming
+            .iter()
+            .map(|instance| {
+                self.new_incoming_instance(&mut *rng, initial_state.clone(), instance.clone())
+                    .expect("Failed to create incoming instance")
             })
-            .collect()
+            .collect();
+
+        StepInput {
+            external_inputs: single.clone(),
+            other_instances: Some((lcccs, cccs)),
+        }
     }
 }
 
