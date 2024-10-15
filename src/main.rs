@@ -1,12 +1,15 @@
 use std::time::Instant;
 
 use scenario_config::ScenarioConfig;
+use tracing::info;
 
-use crate::folding::{
-    prepare_folding, verify_folding, FoldingSchemeExt, HyperNovaFolding, NovaFolding,
+use crate::{
+    folding::{prepare_folding, verify_folding, FoldingSchemeExt, HyperNovaFolding, NovaFolding},
+    logging::init_logging,
 };
 
 mod circuit;
+mod logging;
 
 mod folding;
 mod input;
@@ -15,7 +18,7 @@ mod scenario_config;
 fn measure<T, Action: FnOnce() -> T>(action_name: &str, action: Action) -> T {
     let start = Instant::now();
     let result = action();
-    println!("{action_name}: {:?}", start.elapsed());
+    info!("{action_name}: {:?}", start.elapsed());
     result
 }
 
@@ -57,6 +60,8 @@ fn scenario<FS: FoldingSchemeExt>(config: ScenarioConfig, rng: &mut impl rand::R
 }
 
 fn main() {
+    init_logging();
+
     let mut rng = rand::rngs::OsRng;
     let config = ScenarioConfig::new();
 
