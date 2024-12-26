@@ -1,15 +1,18 @@
 use ark_bn254::Fr;
+use experimental_frontends::circom::CircomFCircuit;
 use num_traits::Zero;
-use sonobe::frontend::circom::CircomFCircuit;
 use tracing::info_span;
 
-use crate::{circuit::create_circuit, input::prepare_input};
+use crate::{
+    circuit::{create_circuit, STEP_INPUT_WIDTH},
+    input::prepare_input,
+};
 
 #[derive(Clone)]
 pub struct ScenarioConfig {
     pub num_inputs: usize,
     pub start_ivc_state: Vec<Fr>,
-    pub circuit: CircomFCircuit<Fr>,
+    pub circuit: CircomFCircuit<Fr, STEP_INPUT_WIDTH>,
     input: Vec<Vec<Fr>>,
 }
 
