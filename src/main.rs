@@ -37,14 +37,7 @@ fn scenario<FS: FoldingSchemeExt>(
 
     // ============== FOLDING VERIFICATION =========================================================
 
-    info_span!("Folding verification").in_scope(|| {
-        verify_folding(
-            &folding,
-            folding_vp,
-            config.start_ivc_state,
-            config.num_inputs,
-        )
-    });
+    info_span!("Folding verification").in_scope(|| verify_folding(&folding, folding_vp));
 }
 
 fn main() {

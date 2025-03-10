@@ -5,20 +5,16 @@ edition = "2021"
 authors = ["Piotr Mikołajczyk <piomiko41@gmail.com>"]
 
 [dependencies]
-ark-bn254 = { version = "^0.4.0", features = ["r1cs"] }
-ark-crypto-primitives = { version = "0.4.0" }
-ark-grumpkin = { version = "0.4.0", features = ["r1cs"] }
-ark-groth16 = { version = "0.4.0", features = ["parallel"] }
-ark-serialize = { version = "0.4.0" }
+ark-bn254 = { version = "^0.5.0", features = ["r1cs"] }
+ark-crypto-primitives = { version = "0.5.0" }
+ark-grumpkin = { version = "0.5.0", features = ["r1cs"] }
+ark-groth16 = { version = "0.5.0", features = ["parallel"] }
+ark-serialize = { version = "0.5.0" }
 itertools = { version = "0.13.0" }
 num-traits = { version = "0.2.15" }
 rand = { version = "0.8.5" }
 tracing = { version = "0.1.26" }
 tracing-subscriber = { version = "0.3.18", features = ["fmt", "json", "env-filter"] }
 
-sonobe = { git = "https://github.com/privacy-scaling-explorations/sonobe", rev = "f1d82418ba047cf90805f2d0505370246df24d68", package = "folding-schemes" }
-
-[patch.crates-io]
-ark-r1cs-std = { git = "https://github.com/winderica/r1cs-std", branch = "cherry-pick" }
-ark-bn254 = { git = "https://github.com/arnaucube/ark-curves-cherry-picked", branch = "cherry-pick" }
-ark-grumpkin = { git = "https://github.com/arnaucube/ark-curves-cherry-picked", branch = "cherry-pick" }
+sonobe = { git = "https://github.com/privacy-scaling-explorations/sonobe", rev = "c6f1a246e0705582a75de6becf4ad21f325fa5a1", package = "folding-schemes" }
+experimental-frontends = { git = "https://github.com/privacy-scaling-explorations/sonobe", rev = "c6f1a246e0705582a75de6becf4ad21f325fa5a1", package = "experimental-frontends" }

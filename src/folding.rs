@@ -1,23 +1,23 @@
-use ark_bn254::{constraints::GVar, Bn254, Fr, G1Projective as G1};
+use ark_bn254::{Bn254, Fr, G1Projective as G1};
 use ark_crypto_primitives::sponge::poseidon::PoseidonConfig;
-use ark_grumpkin::{constraints::GVar as GVar2, Projective as G2};
+use ark_grumpkin::Projective as G2;
+use experimental_frontends::{circom::CircomFCircuit, utils::VecF};
 use sonobe::{
     commitment::{kzg::KZG, pedersen::Pedersen},
     folding::{hypernova::HyperNova, nova::Nova},
-    frontend::circom::CircomFCircuit,
     transcript::poseidon::poseidon_canonical_config,
     Error, FoldingScheme, MultiFolding,
 };
 use tracing::info_span;
 
+use crate::circuit::STEP_INPUT_WIDTH;
+
 pub type NovaFolding =
-    Nova<G1, GVar, G2, GVar2, CircomFCircuit<Fr>, KZG<'static, Bn254>, Pedersen<G2>, false>;
+    Nova<G1, G2, CircomFCircuit<Fr, STEP_INPUT_WIDTH>, KZG<'static, Bn254>, Pedersen<G2>, false>;
 pub type HyperNovaFolding<const M: usize, const N: usize> = HyperNova<
     G1,
-    GVar,
     G2,
-    GVar2,
-    CircomFCircuit<Fr>,
+    CircomFCircuit<Fr, STEP_INPUT_WIDTH>,
     KZG<'static, Bn254>,
     Pedersen<G2>,
     M,
@@ -26,11 +26,11 @@ pub type HyperNovaFolding<const M: usize, const N: usize> = HyperNova<
 >;
 
 pub struct StepInput<OtherInstances> {
-    pub external_inputs: Vec<Fr>,
+    pub external_inputs: VecF<Fr, STEP_INPUT_WIDTH>,
     pub other_instances: Option<OtherInstances>,
 }
 
-pub trait FoldingSchemeExt: FoldingScheme<G1, G2, CircomFCircuit<Fr>> {
+pub trait FoldingSchemeExt: FoldingScheme<G1, G2, CircomFCircuit<Fr, STEP_INPUT_WIDTH>> {
     const MULTISTEP_SIZE: usize;
 
     fn num_steps(num_inputs: usize) -> usize {
@@ -40,7 +40,7 @@ pub trait FoldingSchemeExt: FoldingScheme<G1, G2, CircomFCircuit<Fr>> {
 
     fn prepreprocess(
         poseidon_config: PoseidonConfig<Fr>,
-        circuit: CircomFCircuit<Fr>,
+        circuit: CircomFCircuit<Fr, STEP_INPUT_WIDTH>,
     ) -> Self::PreprocessorParam;
 
     fn transform_multi_input(
@@ -70,7 +70,7 @@ impl FoldingSchemeExt for NovaFolding {
 
     fn prepreprocess(
         poseidon_config: PoseidonConfig<Fr>,
-        circuit: CircomFCircuit<Fr>,
+        circuit: CircomFCircuit<Fr, STEP_INPUT_WIDTH>,
     ) -> Self::PreprocessorParam {
         Self::PreprocessorParam::new(poseidon_config, circuit)
     }
@@ -83,7 +83,7 @@ impl FoldingSchemeExt for NovaFolding {
     ) -> StepInput<Self::MultiCommittedInstanceWithWitness> {
         assert_eq!(input.len(), 1);
         StepInput {
-            external_inputs: input[0].clone(),
+            external_inputs: VecF(input[0].clone()),
             other_instances: None,
         }
     }
@@ -94,7 +94,7 @@ impl<const M: usize, const N: usize> FoldingSchemeExt for HyperNovaFolding<M, N>
 
     fn prepreprocess(
         poseidon_config: PoseidonConfig<Fr>,
-        circuit: CircomFCircuit<Fr>,
+        circuit: CircomFCircuit<Fr, STEP_INPUT_WIDTH>,
     ) -> Self::PreprocessorParam {
         Self::PreprocessorParam::new(poseidon_config, circuit)
     }
@@ -111,7 +111,7 @@ impl<const M: usize, const N: usize> FoldingSchemeExt for HyperNovaFolding<M, N>
         };
 
         let new_running = |instance| {
-            self.new_running_instance(&mut *rng, initial_state.clone(), instance)
+            self.new_running_instance(&mut *rng, initial_state.clone(), VecF(instance))
                 .expect("Failed to create running instance")
         };
 
@@ -123,20 +123,20 @@ impl<const M: usize, const N: usize> FoldingSchemeExt for HyperNovaFolding<M, N>
         let cccs = incoming
             .iter()
             .map(|instance| {
-                self.new_incoming_instance(&mut *rng, initial_state.clone(), instance.clone())
+                self.new_incoming_instance(&mut *rng, initial_state.clone(), VecF(instance.clone()))
                     .expect("Failed to create incoming instance")
             })
             .collect();
 
         StepInput {
-            external_inputs: single.clone(),
+            external_inputs: VecF(single.clone()),
             other_instances: Some((lcccs, cccs)),
         }
     }
 }
 
 pub fn prepare_folding<FS: FoldingSchemeExt>(
-    circuit: &CircomFCircuit<Fr>,
+    circuit: &CircomFCircuit<Fr, STEP_INPUT_WIDTH>,
     start_ivc_state: Vec<Fr>,
     rng: &mut impl rand::RngCore,
 ) -> (FS, FS::VerifierParam) {
@@ -149,21 +149,7 @@ pub fn prepare_folding<FS: FoldingSchemeExt>(
     (folding, params.1)
 }
 
-pub fn verify_folding<FS: FoldingSchemeExt>(
-    folding: &FS,
-    folding_vp: FS::VerifierParam,
-    start_ivc_state: Vec<Fr>,
-    num_inputs: usize,
-) {
-    let (running_instance, incoming_instance, cyclefold_instance) = folding.instances();
-    FS::verify(
-        folding_vp,
-        start_ivc_state,
-        folding.state(),
-        Fr::from(FS::num_steps(num_inputs) as u32),
-        running_instance,
-        incoming_instance,
-        cyclefold_instance,
-    )
-    .expect("Failed to verify folded proof");
+pub fn verify_folding<FS: FoldingSchemeExt>(folding: &FS, folding_vp: FS::VerifierParam) {
+    let ivc_proof = folding.ivc_proof();
+    FS::verify(folding_vp, ivc_proof).expect("Failed to verify folded proof");
 }
